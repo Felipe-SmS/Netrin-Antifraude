@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Netrin.Antifraude.Api/Netrin.Antifraude.Api.csproj" />
+  <Project Path="Netrin.Antifraude.Application/Netrin.Antifraude.Application.csproj" />
+  <Project Path="Netrin.Antifraude.Core/Netrin.Antifraude.Core.csproj" />
+  <Project Path="Netrin.Antifraude.Infrastructure/Netrin.Antifraude.Infrastructure.csproj" />
+  <Project Path="Netrin.Antifraude.Worker/Netrin.Antifraude.Worker.csproj" />
+</Solution>
