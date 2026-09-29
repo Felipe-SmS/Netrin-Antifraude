@@ -49,6 +49,3 @@ builder.Services.AddMassTransit(o =>
 
 var host = builder.Build();
 host.Run();
-
-
-

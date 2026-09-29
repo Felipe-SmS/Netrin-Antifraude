@@ -17,6 +17,4 @@ public class TransacaoRepository : BaseRepository<Transacao, AntifraudeDbContext
 
         return base.AlterarAsync(transacao, cancelamento);
     }
-
 }
-

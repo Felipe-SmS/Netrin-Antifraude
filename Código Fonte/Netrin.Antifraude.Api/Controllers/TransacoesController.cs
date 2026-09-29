@@ -6,10 +6,8 @@ namespace Netrin.Antifraude.Api.Controllers
     using Netrin.Antifraude.Application.Commands.Transacoes;
     using Netrin.Antifraude.Core.Dtos;
     using MediatR;
-    using Netrin.Antifraude.Infrastructure.Data.Repository.Interfaces;
     using Netrin.Antifraude.Application.Queries.Transacoes;
     using Netrin.Antifraude.Application.Mapeamentos;
-
 
     [ApiController]
     [Route("api/transacoes")]
@@ -23,14 +21,11 @@ namespace Netrin.Antifraude.Api.Controllers
         {
             _mediator = mediator;
             _query = query;
-
         }
 
         [HttpPost]
         public async Task<ActionResult<TransacaoDto>> Receber(ReceberNovaTransacao command, CancellationToken cancelamento)
         {
-
-
             try
             {
                 var transacao = await _mediator.Send(new ReceberTransacaoCommand { Transacao = command }, cancelamento);

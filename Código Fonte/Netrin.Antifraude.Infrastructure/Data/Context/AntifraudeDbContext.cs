@@ -54,8 +54,8 @@ public class AntifraudeDbContext : DbContext
             entity.HasKey(s => s.Id);
 
             entity.Property(s => s.Status)
-            .HasConversion<string>()
-            .IsRequired();
+                .HasConversion<string>()
+                .IsRequired();
         });
 
         modelBuilder.Entity<Avaliacao>(entity =>
@@ -64,10 +64,10 @@ public class AntifraudeDbContext : DbContext
 
             entity.HasKey(a => a.Id);
 
-        entity.Property(a => a.Decisao)
-            .HasConversion<string>()
-            .HasMaxLength(30)
-            .IsRequired();
+            entity.Property(a => a.Decisao)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
         });
     }
 }

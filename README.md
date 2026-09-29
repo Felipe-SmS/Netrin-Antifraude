@@ -1,29 +1,42 @@
 # Netrin Antifraude
 
-Este projeto recebe transações financeiras, aplica regras de risco e grava uma decisão: aprovada, rejeitada ou enviada para revisão manual. A avaliação acontece em segundo plano. Por isso, o POST pode retornar antes de a decisão estar pronta.
+API de avaliação antifraude para transações financeiras. Recebe a transação, envia para processamento no Worker e registra a decisão: aprovada, rejeitada ou em revisão manual. O resultado pode ser consultado pelo ID da transação.
 
 ## Como está organizado
 
 | Projeto | Responsabilidade |
 | --- | --- |
 | `Netrin.Antifraude.Api` | Recebe e consulta transações por HTTP. Usa Basic Auth. |
-| `Netrin.Antifraude.Application` | Contém as entidades, commands, as consultas, as regras de avaliação e a publicação da mensagem. |
-|`Netrin.Antifraude.Core` | Biblioteca compartilhada com entidades, enums, DTOs e o contrato da mensagem. Não depende da API nem do Worker. |
+| `Netrin.Antifraude.Application` | Contém os commands, as consultas LINQ, as regras de avaliação e a publicação de mensagens. |
+| `Netrin.Antifraude.Core` | Biblioteca compartilhada com entidades, enums, DTOs e o contrato da mensagem. Não depende da API nem do Worker. |
 | `Netrin.Antifraude.Infrastructure` | Persiste transações e avaliações no PostgreSQL com Entity Framework Core. |
 | `Netrin.Antifraude.Worker` | Consome mensagens do RabbitMQ e executa a avaliação. |
 
 API e Worker chamam os commands pelo MediatR. A comunicação entre eles usa MassTransit com RabbitMQ.
 
-Além de `Código Fonte`, o repositório tem `Postgre Docker Compose` e `RabbitMQ Docker Compose` para subir cada dependência separadamente, e `API Docker Compose` para subir o sistema inteiro em contêineres.
+## Execução com Docker
 
-## Resumo de Padrões utilizados
-**Builder nas regras.** Cada condição chama `RejeitarSe` ou `RevisarSe` no `AvaliacaoBuilder`. Ele reúne os motivos e decide uma vez no final, com prioridade para rejeição. Assim, posso acrescentar uma regra sem espalhar `if` e decisões finais por vários pontos do código.
+Com o Docker em execução, rode na raiz do repositório:
 
-**Commands com MediatR.** A API envia `ReceberTransacaoCommand` e o Worker envia `AvaliarTransacaoCommand`. O MediatR chama o handler correspondente e devolve o resultado. Controllers e consumidores ficam pequenos, enquanto cada handler mostra o fluxo completo do seu caso de uso.
+```powershell
+docker compose -f "API Docker Compose/docker-compose.yaml" up --build -d
+```
 
-**CQRS simples.** Os commands cuidam das operações que mudam o estado. O repository executa inserções e alterações no banco e concentra detalhes do EF Core, como anexar a avaliação antes de salvar; `TransacaoQuery` fica com as leituras feitas por LINQ. 
+Esse compose sobe PostgreSQL, RabbitMQ, migrador, Worker e API. O migrador aplica as migrations e encerra antes da inicialização do Worker e da API. A API também executa as migrations pendentes ao iniciar.
 
-**Retry no Worker.** Se o consumo da mensagem falhar, o MassTransit faz três novas tentativas com intervalo fixo de cinco segundos. Isso dá tempo para uma falha transitória passar. Esgotadas as tentativas, a mensagem vai para a fila de erro para análise; o retry não corrige uma falha definitiva da regra ou dos dados.
+O Swagger fica em [http://localhost:8080/swagger](http://localhost:8080/swagger) e o painel do RabbitMQ em [http://localhost:15672](http://localhost:15672). As credenciais locais padrão são `antifraude` / `antifraude_local`. No compose, podem ser alteradas pelas variáveis `API_USER`, `API_PASSWORD`, `DB_PASSWORD` e `RABBITMQ_PASSWORD`.
+
+As portas 5432, 5672, 15672 e 8080 precisam estar livres. Os dados do PostgreSQL e do RabbitMQ ficam em volumes do Docker.
+
+## Padrões utilizados
+
+**Builder.** As regras chamam `RejeitarSe` ou `RevisarSe` no `AvaliacaoBuilder`. Ele acumula os motivos e monta o resultado em `Construir`, dando prioridade à rejeição. Uma nova validação pode ser acrescentada sem repetir a lógica que define a decisão final.
+
+**Commands e MediatR.** O controller envia `ReceberTransacaoCommand` e o consumidor envia `AvaliarTransacaoCommand`. O MediatR encaminha cada chamada ao handler e devolve o resultado. Cada handler concentra as etapas do seu caso de uso.
+
+**CQRS.** Nos fluxos de recebimento e avaliação, os commands gravam pelo repository e consultam pela `TransacaoQuery`. O repository cuida da persistência com EF Core; a query reúne as consultas LINQ. Leitura e escrita usam o mesmo banco.
+
+**Retry.** Quando o consumo de uma mensagem falha, o MassTransit faz três novas tentativas, com intervalo fixo de cinco segundos. Se todas falharem, a mensagem vai para a fila de erro. Não há backoff progressivo nem reprocessamento automático dessa fila.
 
 ## Componentes do sistema
 
@@ -63,11 +76,11 @@ flowchart LR
 
 As regras rejeitam transações inativas, valores acima de R$ 50.000 e valores com fração de centavo. Valores a partir de R$ 10.000 ou abaixo de R$ 1 vão para revisão manual. Sem ocorrência dessas condições, a transação é aprovada. Rejeição tem prioridade sobre revisão.
 
-No código, as decisões são `Aprovada`, `Rejeitada` e `RevisaoManual`. O contrato HTTP atual não usa os textos `APPROVED`, `REJECTED` e `REVIEW` pedidos no escopo original.
+Os enums de status e decisão são retornados como números. Os campos `statusDescricao` e `decisaoDescricao` trazem os nomes correspondentes, como `Processada` e `Rejeitada`.
 
-## API atual
+## Endpoints
 
-Os dois endpoints exigem Basic Auth. As credenciais de desenvolvimento estão em `appsettings.Development.json`; Fora de desenvolvimento, estão concentradas em Variáveis de Ambiente: `BasicAuth__Usuario` e `BasicAuth__Senha`.
+Os dois endpoints exigem Basic Auth. Na execução local, as credenciais estão em `appsettings.Development.json`. No Docker, o compose repassa `API_USER` e `API_PASSWORD` para `BasicAuth__Usuario` e `BasicAuth__Senha`.
 
 ### `POST /api/transacoes`
 
@@ -78,13 +91,13 @@ Os dois endpoints exigem Basic Auth. As credenciais de desenvolvimento estão em
 }
 ```
 
-A chave é obrigatória e hoje vai **no corpo**, não no header `Idempotency-Key`. A API retorna `202 Accepted` enquanto não houver avaliação, `200 OK` se a transação já estiver avaliada e `409 Conflict` se a mesma chave for usada com outro valor. A resposta contém o ID, o status e, quando pronta, a avaliação com decisão e motivo.
+A chave de idempotência é obrigatória no corpo da requisição. A API retorna `202 Accepted` enquanto não houver avaliação, `200 OK` se a transação já estiver avaliada e `409 Conflict` se a mesma chave for usada com outro valor. A resposta contém o ID, o status e, quando pronta, a avaliação com decisão e motivo.
 
 ### `GET /api/transacoes/{id}`
 
-Retorna `200 OK` com a transação, seu status e sua avaliação, quando existir. Retorna `404 Not Found` para um ID desconhecido. Enquanto o Worker não terminar, a avaliação fica vazia.
+Retorna `200 OK` com a transação, seu status e sua avaliação. Para um ID desconhecido, retorna `404 Not Found`. Enquanto o Worker não terminar, o campo `avaliacao` é `null`.
 
-As rotas acima descrevem o sistema implementado. O contrato `/transactions` com chave no header ainda precisa ser feito se os nomes e o formato do escopo original forem obrigatórios.
+O contrato implementado difere do solicitado no escopo: usa `/api/transacoes`, recebe a chave no corpo e descreve as decisões como `Aprovada`, `Rejeitada` e `RevisaoManual`. As rotas `/transactions`, o header `Idempotency-Key` e os textos `APPROVED`, `REJECTED` e `REVIEW` não estão implementados.
 
 ## Idempotência e deduplicação
 
@@ -94,34 +107,24 @@ O campo `EnvioParaAvaliacaoSolicitado` impede que duas chamadas publiquem a mesm
 
 Banco e RabbitMQ não participam da mesma transação. Se a API cair depois de reservar o envio e antes de publicar, o registro pode ficar pendente sem mensagem. Não há recuperação automática desse caso nem Outbox nesta versão.
 
-
-
-
 ## Decisões arquiteturais
 
 ### ADR 1 — RabbitMQ para avaliação assíncrona
 
-A API envia a transação para uma fila no RabbitMQ e um Worker realiza a avaliação.
-
-O RabbitMQ foi escolhido por atender bem esse fluxo e por já utilizarmos MassTransit no projeto. Kafka adicionaria uma complexidade desnecessária para esse cenário.
-
-
+A avaliação fica no Worker para que a API possa responder assim que receber e publicar a transação. O RabbitMQ atende ao processamento por fila e tem integração com o MassTransit, usado na publicação, no consumo e no retry.
 
 ### ADR 2 — PostgreSQL para transações e avaliações
 
-Usar banco relacional com índices únicos para chave de idempotência e avaliação por transação. As relações e a consistência dessas gravações são centrais para o módulo.
-
-
+O PostgreSQL mantém as relações entre transação, status e avaliação. Os índices únicos garantem uma transação por chave de idempotência e uma avaliação por transação, inclusive quando há chamadas concorrentes.
 
 ### ADR 3 — Idempotência por chave e estado de envio
 
-Usar uma chave única no PostgreSQL, retornar a transação existente quando os dados forem iguais e rejeitar o uso da mesma chave com outro valor. Antes de publicar, o command reserva o envio; o Worker também verifica se já existe avaliação. 
+A deduplicação usa a chave de idempotência e o estado de envio gravados no PostgreSQL. Requisições repetidas recuperam a transação existente; o controle de concorrência evita que duas chamadas reservem o mesmo envio. O Worker verifica a avaliação existente antes de processar novamente.
 
 ### ADR 4 — Builder para compor as regras antifraude
 
-Manter as regras no código e reuni-las com `AvaliacaoBuilder`. Cada validação informa se deve rejeitar ou enviar para revisão; o Builder resolve a decisão no final, dando prioridade à rejeição. **Consequência:** fica simples acrescentar ou explicar uma regra sem criar vários fluxos de decisão. Se as regras passarem a ser configuradas por usuários ou mudarem com muita frequência, essa estrutura precisará ser revista.
-
+O `AvaliacaoBuilder` reúne os resultados de várias validações em uma avaliação. As regras informam a condição e o motivo; o Builder resolve a prioridade entre rejeição, revisão e aprovação. Isso mantém a composição das regras legível e concentra a decisão final em um único lugar.
 
 ### ADR 5 — Core como biblioteca compartilhada
 
-API e Worker usam os mesmos tipos, e outras integrações podem surgir. Decidi manter no Core os modelos e contratos comuns, sem dependência de HTTP, RabbitMQ ou banco; commands, consultas e validações ficam na Application. Isso permite reutilizar os contratos em outra API .NET. Para um front-end, o compartilhamento acontece pelo JSON exposto pela API.
+O Core concentra entidades, enums, DTOs e contratos de mensagens usados pela API e pelo Worker. Não depende de HTTP, MassTransit ou EF Core e pode ser referenciado por outras aplicações .NET. Uma integração com front-end usa o JSON exposto pela API. Commands, consultas e regras de avaliação ficam na Application.

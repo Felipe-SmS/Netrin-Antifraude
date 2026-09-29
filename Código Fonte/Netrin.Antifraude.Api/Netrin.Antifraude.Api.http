@@ -1,6 +1,18 @@
-@Netrin.Antifraude.Api_HostAddress = http://localhost:5021
+@host = http://localhost:8080
+@credenciais = YW50aWZyYXVkZTphbnRpZnJhdWRlX2xvY2Fs
+@transacaoId = 1
 
-GET {{Netrin.Antifraude.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{host}}/api/transacoes
+Authorization: Basic {{credenciais}}
+Content-Type: application/json
+
+{
+  "idempotencyKey": "pedido-001",
+  "valor": 15000
+}
 
 ###
+
+GET {{host}}/api/transacoes/{{transacaoId}}
+Authorization: Basic {{credenciais}}
+Accept: application/json
