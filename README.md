@@ -24,9 +24,37 @@ docker compose -f "API Docker Compose/docker-compose.yaml" up --build -d
 
 Esse compose sobe PostgreSQL, RabbitMQ, migrador, Worker e API. O migrador aplica as migrations e encerra antes da inicialização do Worker e da API. A API também executa as migrations pendentes ao iniciar.
 
-O Swagger fica em [http://localhost:8080/swagger](http://localhost:8080/swagger) e o painel do RabbitMQ em [http://localhost:15672](http://localhost:15672). As credenciais locais padrão são `antifraude` / `antifraude_local`. No compose, podem ser alteradas pelas variáveis `API_USER`, `API_PASSWORD`, `DB_PASSWORD` e `RABBITMQ_PASSWORD`.
+Caso ocorra algum erro relacionado às entidades, migrations ou atualização do banco, execute na raiz do repositório:
 
-As portas 5432, 5672, 15672 e 8080 precisam estar livres. Os dados do PostgreSQL e do RabbitMQ ficam em volumes do Docker.
+```powershell
+dotnet ef database update
+```
+
+O projeto está orquestrado para que esse comando seja executado diretamente pela raiz da solução. O `DbContext` está localizado em `Netrin.Antifraude.Infrastructure` e as entidades estão em `Netrin.Antifraude.Application`.
+
+O Swagger fica em [http://localhost:8080/swagger](http://localhost:8080/swagger) e o painel do RabbitMQ em [http://localhost:15672](http://localhost:15672).
+
+As credenciais locais padrão são `antifraude` / `antifraude_local`.
+
+No compose, essas configurações podem ser alteradas pelas variáveis:
+
+```text
+API_USER
+API_PASSWORD
+DB_PASSWORD
+RABBITMQ_PASSWORD
+```
+
+As portas abaixo precisam estar livres:
+
+```text
+5432  - PostgreSQL
+5672  - RabbitMQ
+15672 - RabbitMQ Management
+8080  - API
+```
+
+Os dados do PostgreSQL e do RabbitMQ ficam armazenados em volumes do Docker.
 
 ## Padrões utilizados
 
