@@ -1,0 +1,96 @@
+name: netrin-antifraude
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: antifraude
+      POSTGRES_USER: antifraude
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-antifraude_local}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U antifraude -d antifraude"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: antifraude
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-antifraude_local}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrator:
+    build:
+      context: ..
+      dockerfile: API Docker Compose/Dockerfile
+      target: api
+    environment:
+      MigrateOnly: "true"
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=antifraude;Username=antifraude;Password=${DB_PASSWORD:-antifraude_local}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: API Docker Compose/Dockerfile
+      target: worker
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=antifraude;Username=antifraude;Password=${DB_PASSWORD:-antifraude_local}
+      HostNameRabbit: rabbitmq
+      UserNameRabbit: antifraude
+      PasswordRabbit: ${RABBITMQ_PASSWORD:-antifraude_local}
+      EnvironmentRabbit: antifraude
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: API Docker Compose/Dockerfile
+      target: api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=antifraude;Username=antifraude;Password=${DB_PASSWORD:-antifraude_local}
+      HostNameRabbit: rabbitmq
+      UserNameRabbit: antifraude
+      PasswordRabbit: ${RABBITMQ_PASSWORD:-antifraude_local}
+      BasicAuth__Usuario: ${API_USER:-antifraude}
+      BasicAuth__Senha: ${API_PASSWORD:-antifraude_local}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

@@ -1,6 +1,6 @@
 public abstract class BaseEntity
 {
-    public Guid Id { get; protected set; } = Guid.NewGuid();
+    public int Id { get; protected set; } = 0;
 
     public DateTime DataCriacao { get; protected set; } = DateTime.UtcNow;
 

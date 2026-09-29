@@ -2,7 +2,7 @@ using Netrin.Antifraude.Core.Dtos;
 
 namespace Netrin.Antifraude.Application.Mapeamentos;
 
-internal static class TransacaoMapeamento
+public static class TransacaoMapeamento
 {
     public static TransacaoDto ParaDto(this Transacao transacao) => new()
     {
@@ -16,6 +16,7 @@ internal static class TransacaoMapeamento
         {
             Id = transacao.Status.Id,
             Status = transacao.Status.Status,
+            StatusDescricao = transacao.Status.Status.ToString(),
             DataCriacao = transacao.Status.DataCriacao,
             DataAtualizacao = transacao.Status.DataAtualizacao,
             EhAtivo = transacao.Status.EhAtivo
@@ -24,6 +25,7 @@ internal static class TransacaoMapeamento
         {
             Id = transacao.Avaliacao.Id,
             Decisao = transacao.Avaliacao.Decisao,
+            DecisaoDescricao = transacao.Avaliacao.Decisao.ToString(),
             Motivo = transacao.Avaliacao.Motivo,
             DataCriacao = transacao.Avaliacao.DataCriacao,
             DataAtualizacao = transacao.Avaliacao.DataAtualizacao,

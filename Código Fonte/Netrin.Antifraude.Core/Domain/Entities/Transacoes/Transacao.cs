@@ -3,6 +3,7 @@ public class Transacao : BaseEntity
 {
     public string IdempotencyKey { get; private set; } = null!;
     public decimal Valor { get; private set; }
+    public bool EnvioParaAvaliacaoSolicitado { get; private set; }
     public StatusTransacao Status { get; private set; } = null!;
     public Avaliacao? Avaliacao { get; private set; }
 
@@ -24,6 +25,16 @@ public class Transacao : BaseEntity
     public void IniciarProcessamento()
     {
         Status.AlterarStatus(EnumStatusTransacao.Processando);
+    }
+
+    public void SolicitarEnvioParaAvaliacao()
+    {
+        EnvioParaAvaliacaoSolicitado = true;
+    }
+
+    public void LiberarEnvioParaAvaliacao()
+    {
+        EnvioParaAvaliacaoSolicitado = false;
     }
 
     public void FinalizarAvaliacao(EnumDecisaoAvaliacao decisao, string? motivo)

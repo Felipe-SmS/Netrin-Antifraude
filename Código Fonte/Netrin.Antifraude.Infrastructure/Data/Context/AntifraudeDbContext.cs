@@ -31,6 +31,9 @@ public class AntifraudeDbContext : DbContext
             entity.HasIndex(t => t.IdempotencyKey)
                 .IsUnique();
 
+            entity.Property(t => t.EnvioParaAvaliacaoSolicitado)
+                .IsConcurrencyToken();
+
             entity.HasOne(t => t.Status)
                 .WithOne()
                 .HasForeignKey<StatusTransacao>("TransacaoId")

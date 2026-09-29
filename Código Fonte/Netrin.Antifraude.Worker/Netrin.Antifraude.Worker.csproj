@@ -13,5 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Netrin.Antifraude.Infrastructure\Netrin.Antifraude.Infrastructure.csproj" />
+    <ProjectReference Include="..\Netrin.Antifraude.Application\Netrin.Antifraude.Application.csproj" />
   </ItemGroup>
 </Project>

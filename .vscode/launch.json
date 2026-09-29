@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Antifraude API",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/Código Fonte/Netrin.Antifraude.Api/bin/Debug/net10.0/Netrin.Antifraude.Api.dll",
+      "cwd": "${workspaceFolder}/Código Fonte/Netrin.Antifraude.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5021"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Antifraude Worker",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/Código Fonte/Netrin.Antifraude.Worker/bin/Debug/net10.0/Netrin.Antifraude.Worker.dll",
+      "cwd": "${workspaceFolder}/Código Fonte/Netrin.Antifraude.Worker",
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Antifraude API + Worker",
+      "configurations": ["Antifraude API", "Antifraude Worker"],
+      "preLaunchTask": "build antifraude",
+      "stopAll": true
+    }
+  ]
+}

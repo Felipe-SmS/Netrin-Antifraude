@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Netrin.Antifraude.Application.Interfaces.Repositories;
+using Netrin.Antifraude.Infrastructure.Data.Repository.Interfaces;
 
 namespace Netrin.Antifraude.Infrastructure.Repositories
 {
@@ -39,10 +39,10 @@ namespace Netrin.Antifraude.Infrastructure.Repositories
             return await Obter().OrderBy(objeto => objeto.Id).ToListAsync(cancelamento);
         }
 
-        public Task<TEntidade> ObterPeloId(Guid id, CancellationToken cancelamento = default)
+        public Task<TEntidade> ObterPeloId(int id, CancellationToken cancelamento = default)
             => ObterPeloIdAsync(id, cancelamento);
 
-        public async Task<TEntidade> ObterPeloIdAsync(Guid id, CancellationToken cancelamento = default)
+        public async Task<TEntidade> ObterPeloIdAsync(int id, CancellationToken cancelamento = default)
         {
             return await CriarConsulta().SingleOrDefaultAsync(objeto => objeto.Id == id, cancelamento)
                 ?? throw new InvalidOperationException(
@@ -83,10 +83,10 @@ namespace Netrin.Antifraude.Infrastructure.Repositories
             registro.Property(entidade => entidade.DataAtualizacao).CurrentValue = dataAtualizacao;
         }
 
-        public Task Remover(Guid id, CancellationToken cancelamento = default)
+        public Task Remover(int id, CancellationToken cancelamento = default)
             => RemoverAsync(id, cancelamento);
 
-        public virtual async Task RemoverAsync(Guid id, CancellationToken cancelamento = default)
+        public virtual async Task RemoverAsync(int id, CancellationToken cancelamento = default)
         {
             var objeto = await ObterPeloIdAsync(id, cancelamento);
             await RemoverPorObjeto(objeto, cancelamento);

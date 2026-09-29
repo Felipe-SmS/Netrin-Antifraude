@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Netrin.Antifraude.Application\Netrin.Antifraude.Application.csproj" />
+    <ProjectReference Include="..\Netrin.Antifraude.Core\Netrin.Antifraude.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.10" />
   </ItemGroup>
 
   <PropertyGroup>

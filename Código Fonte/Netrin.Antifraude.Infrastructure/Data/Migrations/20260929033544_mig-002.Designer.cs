@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Netrin.Antifraude.Infrastructure.Data.Context;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Netrin.Antifraude.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AntifraudeDbContext))]
-    partial class AntifraudeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929033544_mig-002")]
+    partial class mig002
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,10 +108,6 @@ namespace Netrin.Antifraude.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("EhAtivo")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("EnvioParaAvaliacaoSolicitado")
-                        .IsConcurrencyToken()
                         .HasColumnType("boolean");
 
                     b.Property<string>("IdempotencyKey")
